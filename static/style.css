@@ -1,0 +1,391 @@
+/* ===================================================================
+   Assinatura Digital — tema "contrato de papel encontra terminal
+   criptográfico": documento em papel (serifada) + camada de assinatura
+   digital (monoespaçada), unidos por um selo de cera no recibo.
+   =================================================================== */
+
+:root {
+  --ink: #14171c;
+  --ink-raised: #1b1f27;
+  --ink-line: #2a2f3a;
+  --text: #e7e4da;
+  --muted: #8b93a3;
+
+  --paper: #f4eedd;
+  --paper-shadow: #d9cca1;
+  --paper-text: #2a2116;
+  --paper-muted: #6b5f4c;
+  --paper-rule: #cdbf9c;
+
+  --seal: #8a2b32;
+  --seal-light: #b5454c;
+  --gold: #b98f2b;
+
+  --radius-paper: 3px;
+  --radius-panel: 4px;
+
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: "Source Serif 4", Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+a { color: inherit; }
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 20px 72px;
+}
+
+/* ---------------------------- Topbar ---------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 22px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--ink-line);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+.mark svg { color: var(--gold); flex-shrink: 0; }
+
+.doc-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.doc-status .sep { opacity: 0.5; }
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6fae7c;
+  box-shadow: 0 0 0 3px rgba(111, 174, 124, 0.15);
+  flex-shrink: 0;
+}
+
+/* ---------------------------- Layout ---------------------------- */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ---------------------------- O papel ---------------------------- */
+
+.paper {
+  background: var(--paper);
+  color: var(--paper-text);
+  border-radius: var(--radius-paper);
+  box-shadow:
+    0 1px 0 var(--paper-shadow),
+    0 18px 40px -22px rgba(0, 0, 0, 0.65);
+  position: relative;
+}
+
+.paper-inner {
+  padding: 40px 40px 32px;
+}
+
+.paper-eyebrow {
+  margin: 0 0 6px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  color: var(--paper-muted);
+  letter-spacing: 0.02em;
+}
+.paper-eyebrow .sep { margin: 0 5px; }
+
+.paper-title {
+  margin: 0 0 22px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  max-width: 34ch;
+  border-bottom: 1px solid var(--paper-rule);
+  padding-bottom: 18px;
+}
+
+.paper-p {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+.paper-list {
+  margin: 0 0 16px;
+  padding-left: 1.3em;
+  font-size: 1rem;
+  line-height: 1.65;
+  max-width: 60ch;
+}
+.paper-list li { margin-bottom: 8px; }
+.paper-list li::marker {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85em;
+  color: var(--seal);
+}
+
+.paper-hash {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--paper-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.paper-hash span {
+  font-size: 0.72rem;
+  color: var(--paper-muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+.paper-hash code {
+  font-size: 0.78rem;
+  color: var(--paper-text);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+/* ---------------------------- Ledger (form) ---------------------------- */
+
+.ledger, .receipt {
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-panel);
+  padding: 28px 30px 30px;
+}
+
+.ledger-heading {
+  margin: 0 0 20px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ink-line);
+}
+
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.field input[type="text"],
+.field input[type="email"] {
+  width: 100%;
+  background: var(--ink);
+  border: 1px solid var(--ink-line);
+  border-radius: 3px;
+  padding: 11px 13px;
+  color: var(--text);
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 1rem;
+}
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(185, 143, 43, 0.18);
+}
+
+.agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 22px;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.agree input {
+  margin: 3px 0 0;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: var(--seal);
+}
+.agree span { flex: 1; }
+
+button#submit-btn {
+  width: 100%;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 3px;
+  background: var(--seal);
+  color: #f4eedd;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+button#submit-btn:hover:not(:disabled) { background: var(--seal-light); }
+button#submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+button#submit-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.error {
+  color: var(--seal-light);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  min-height: 1.2em;
+  margin: 12px 0 0;
+}
+
+/* ---------------------------- Recibo / Selo ---------------------------- */
+
+.receipt {
+  text-align: center;
+  animation: stamp 340ms cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+
+@keyframes stamp {
+  from { opacity: 0; transform: scale(1.06) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.seal {
+  width: 110px;
+  height: 110px;
+  margin: 4px auto 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-6deg);
+}
+.seal-ring {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--seal);
+  box-shadow:
+    0 0 0 4px var(--ink-raised),
+    0 0 0 5px var(--seal-light);
+}
+.seal-code {
+  font-size: 0.68rem;
+  letter-spacing: 0.015em;
+  color: var(--seal-light);
+  white-space: nowrap;
+}
+
+.receipt-heading {
+  margin: 0 0 22px;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.ledger-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  max-width: 420px;
+  margin: 0 auto 22px;
+  font-size: 0.82rem;
+}
+.ledger-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px dotted var(--ink-line);
+}
+.ledger-rows dt { color: var(--muted); flex-shrink: 0; }
+.ledger-rows dd {
+  margin: 0;
+  text-align: right;
+  color: var(--text);
+  word-break: break-word;
+}
+.ledger-rows dd.fp { font-size: 0.72rem; letter-spacing: 0.01em; }
+
+.reveal {
+  text-align: left;
+  margin: 0 0 18px;
+}
+.reveal summary {
+  cursor: pointer;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 4px 0;
+}
+.reveal summary:hover { color: var(--text); }
+.reveal pre {
+  margin-top: 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--ink);
+  border: 1px solid var(--ink-line);
+  border-radius: 3px;
+  padding: 14px;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--muted);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 46ch;
+  margin: 0 auto;
+}
+.hint a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+
+.hidden { display: none; }
+
+/* ---------------------------- Responsivo ---------------------------- */
+
+@media (max-width: 560px) {
+  .paper-inner { padding: 28px 22px 24px; }
+  .ledger, .receipt { padding: 22px 20px 24px; }
+  .paper-title { font-size: 1.28rem; }
+  .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ---------------------------- Movimento reduzido ---------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt { animation: none; }
+}
