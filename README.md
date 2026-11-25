@@ -1,126 +1,126 @@
-# Assinador de Documento com PGP (protótipo monólito)
+# DocBirthRiot 🖋️🎮
 
-Aplicação **Flask + SQLite + PGPy** em um único servidor: uma página com um
-documento fixo, um formulário (nome + email) e uma assinatura digital PGP
-gerada por trás de uma API própria.
+Um "termo de aceite" de brincadeira para alguém se comprometer a jogar
+**League of Legends** no próprio aniversário, com assinatura digital PGP de
+verdade por trás.
 
-A assinatura usa a biblioteca [PGPy](https://pgpy.readthedocs.io/), uma
-implementação de OpenPGP **em Python puro** — não depende de instalar o
-binário `gpg` nem de ter um `gpg-agent` rodando no sistema. Isso evita os
-problemas comuns de ambiente (agente travado, PATH, IPC quebrado em pastas
-sincronizadas do OneDrive etc.) e também facilita o deploy: em qualquer
-host Linux gratuito, basta `pip install -r requirements.txt`.
+**Flask + SQLite + [PGPy](https://pgpy.readthedocs.io/)** (OpenPGP em Python
+puro: não precisa de `gpg` instalado para rodar).
+
+## Funcionalidades
+
+- Documento em Markdown simples (`documento.txt`) renderizado como "papel",
+  com títulos, cláusulas, listas romanas e citações
+- Data do aniversário configurável por variável de ambiente, com contador
+  regressivo ("faltam X dias")
+- Assinatura com nome + email e recibo PGP assinado pelo servidor
+- Selo, data, fingerprint e confete quando alguém assina 🎉
+- Página pública de verificação (`/verificar/<código>`), com o email mascarado
+- Verificação de um bloco PGP colado, download do recibo `.asc` e da chave pública
+- Compatível com `gpg --verify`
+- Proteções: IDs de recibo aleatórios (não sequenciais), email nunca exposto
+  inteiro, rate limit por IP, limite de tamanho de requisição, cabeçalhos de
+  segurança (CSP, X-Frame-Options etc.) e chave privada protegida por passphrase
 
 ## Como funciona (modelo de confiança)
 
-Um navegador comum **não tem acesso à chave PGP privada do usuário**. Por
-isso este protótipo usa o modelo de **recibo assinado pelo servidor**:
+O navegador não tem acesso à chave PGP de quem assina. Por isso o
+**servidor** emite um recibo: ele assina com a própria chave o texto
 
-1. O servidor tem seu próprio par de chaves PGP (gerado automaticamente no
-   primeiro start e salvo em `./server_key.asc`).
-2. Quando alguém assina, o servidor monta um texto com:
-   `hash SHA-256 do documento + nome + email + timestamp UTC`
-3. Esse texto é assinado (equivalente a `gpg --clearsign`), usando a chave
-   do servidor.
-4. O resultado (o "recibo") é guardado no SQLite e devolvido para o usuário.
-5. Qualquer pessoa pode pegar esse recibo + a chave pública do servidor
-   (endpoint `/api/public-key`) e verificar **offline** — com `gpg --verify`
-   (o formato gerado é PGP padrão) ou com a própria PGPy — sem confiar em
-   mais nada além da matemática do PGP, para confirmar que aqueles dados
-   não foram alterados depois de assinados.
-
-Isso não é "o usuário assinando com a própria chave PGP" (não é
-não-repúdio no sentido forte) — é uma prova de integridade e um carimbo de
-tempo criptográfico de que o consentimento foi dado com aqueles dados
-exatos. Veja "Próximos passos" para evoluir para assinatura com a chave do
-próprio usuário.
-
-## Requisitos
-
-- Python 3.9+
-- Nenhuma dependência de sistema — tudo é resolvido pelo `pip install`
-  (não precisa de GnuPG/Gpg4win instalado).
-
-## Como rodar
-
-```bash
-cd pgp-signer
-python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-python3 app.py
+```
+Documento (SHA-256): <hash do documento>
+Nome do signatário: <nome>
+Email do signatário: <email>
+Assinado em (UTC): <timestamp>
 ```
 
-Abra **http://localhost:5000**. Na primeira execução o app vai:
-- gerar automaticamente um par de chaves PGP e salvar em `./server_key.asc`
-  (sem passphrase, para simplificar o protótipo — veja "Próximos passos");
-- criar o arquivo `signatures.db` (SQLite) com a tabela de assinaturas.
+Qualquer pessoa pode verificar esse recibo offline com a chave pública do
+servidor. É prova de integridade + carimbo de tempo, não "assinatura de
+próprio punho".
 
-Ambos os arquivos já estão no `.gitignore` — não são versionados, ficam
-locais/no volume do servidor. **`server_key.asc` contém a chave privada:
-trate-o como segredo e faça backup dele** (se perder, não dá para
-revalidar as assinaturas antigas nem gerar novas com a mesma identidade).
+## Rodando localmente
 
-## Endpoints da API
+Requer **Python 3.9 a 3.12** (o PGPy 0.6 ainda não suporta 3.13+).
 
-| Método | Rota                        | Descrição                                              |
-|--------|------------------------------|----------------------------------------------------------|
-| GET    | `/api/document`               | Retorna o texto do documento e seu hash SHA-256          |
-| POST   | `/api/sign`                   | Body: `{"name": "...", "email": "..."}` → gera e guarda a assinatura |
-| GET    | `/api/signatures/<id>`        | Retorna o recibo salvo e revalida a assinatura (`verified: true/false`) |
-| GET    | `/api/public-key`             | Retorna a chave pública (ASCII-armored) do servidor       |
+```bash
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+cp .env.example .env              # Windows: copy .env.example .env
+# edite o .env: BIRTHDAY=MM-DD e SERVER_KEY_PASSPHRASE
+
+python app.py
+```
+
+Abra <http://localhost:5000>. Na primeira execução o app gera a chave do
+servidor (`server_key.asc`) e o banco (`signatures.db`). Os dois, assim como
+o `.env`, ficam fora do git.
+
+> ⚠️ `server_key.asc` contém a chave privada. Faça backup: sem ela, os
+> recibos antigos não podem mais ser revalidados por este servidor.
+
+### Testes
+
+```bash
+pip install pytest
+python -m pytest -q
+```
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `BIRTHDAY` | (vazio) | Data do aniversário, `MM-DD`. Vazio mostra "dia do aniversário" e esconde o contador |
+| `SERVER_KEY_PASSPHRASE` | (vazio) | Protege a chave privada no disco |
+| `SERVER_KEY_NAME` / `SERVER_KEY_EMAIL` | genéricos | Identidade da chave do servidor |
+| `DATA_DIR` | pasta do app (`/tmp` no Vercel) | Onde ficam `signatures.db` e `server_key.asc` |
+| `RATE_LIMIT_PER_MINUTE` | `5` | Assinaturas por IP por minuto |
+| `HOST` / `PORT` / `FLASK_DEBUG` | `127.0.0.1` / `5000` / `0` | Servidor de desenvolvimento |
+
+## Endpoints
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/` | Documento + formulário |
+| GET | `/verificar/<código>` | Página pública do recibo |
+| GET | `/api/document` | Texto e SHA-256 do documento |
+| POST | `/api/sign` | `{"name", "email", "agree": true}` → recibo |
+| GET | `/api/signatures/<código>` | Recibo revalidado (`verified`), email mascarado |
+| GET | `/api/signatures/<código>/download` | Recibo `.asc` |
+| POST | `/api/verify` | `{"signed_block"}` → verifica um bloco colado |
+| GET | `/api/public-key` | Chave pública (`?format=asc` para baixar) |
+| GET | `/api/stats` | Total de assinaturas e dias até o aniversário |
+| GET | `/api/health` | Health check |
+
+## Verificando com gpg
+
+```bash
+curl -o servidor.asc "http://localhost:5000/api/public-key?format=asc"
+gpg --import servidor.asc
+gpg --verify recibo-<código>.asc
+```
 
 ## Trocando o documento
 
-Edite `documento.txt` — o conteúdo é lido em tempo real a cada requisição
-(o hash mostrado na tela e usado na assinatura é recalculado automaticamente).
+Edite `documento.txt`. O marcador `{{DATA_ANIVERSARIO}}` é trocado pela
+data do `.env`. Se o texto mudar, o hash muda, e recibos antigos aparecem
+como "versão anterior do documento".
 
-## Onde hospedar de graça
+## Deploy
 
-Como pediu algo simples e gratuito, sem precisar escalar:
+Qualquer host com disco persistente serve (Fly.io, Railway, uma VM).
+Configure as variáveis de ambiente lá e aponte `DATA_DIR` para o volume.
+Em produção, use um servidor WSGI (`pip install gunicorn` e
+`gunicorn app:app`). Serverless (Vercel/Netlify) funciona só para
+demonstração: o `/tmp` é apagado e as assinaturas se perdem.
 
-- **Fly.io** ou **Railway** (free tier) rodando este mesmo Flask + um
-  volume persistente pequeno para `signatures.db` e `server_key.asc`.
-  Como agora não há dependência de `gpg`/`gpg-agent`, qualquer imagem
-  Python padrão (ex.: `python:3.12-slim`) já basta — não precisa instalar
-  mais nada no Dockerfile além do `pip install -r requirements.txt`.
-- Alternativa ainda mais simples para o banco: trocar o SQLite por
-  **Turso** (SQLite gerenciado, tier grátis) se quiser o banco fora do
-  disco do servidor.
-- Evite Vercel/Netlify serverless para isso: funções serverless não têm
-  disco persistente, e você perderia o SQLite e o `server_key.asc` a cada
-  deploy/cold start.
+## Ideias futuras
 
-## O que eu expandiria primeiro
+- Assinatura com a chave do próprio usuário via [OpenPGP.js](https://openpgpjs.org/)
+- Confirmação por email antes de validar a assinatura
+- Exportar o recibo em PDF com QR code para a página de verificação
 
-Em ordem de prioridade:
+---
 
-1. **Assinatura com a chave do próprio usuário (PGP "de verdade")**
-   Integrar [OpenPGP.js](https://openpgpjs.org/) no frontend: o usuário
-   cola sua chave pública (ou gera um par no navegador), assina o texto
-   canônico *no cliente*, e o servidor só recebe e **verifica** a
-   assinatura (em vez de criá-la). Isso muda o modelo de "recibo do
-   servidor" para "assinatura de próprio punho" de verdade.
-
-2. **Passphrase na chave do servidor + segredo fora do código**
-   Hoje a chave é gerada sem passphrase para simplificar. Em produção,
-   proteja `server_key.asc` com uma passphrase guardada em variável de
-   ambiente/secret manager, e faça backup seguro dele.
-
-3. **Confirmação por email**
-   Enviar um link de confirmação para o email informado antes de gravar a
-   assinatura como válida, evitando que alguém assine em nome de outra
-   pessoa só digitando o email dela.
-
-4. **Página de verificação pública**
-   Uma rota `/verificar/<id>` amigável (HTML, não só JSON) onde qualquer
-   um cola o ID do recibo e vê "✅ assinatura válida, não foi alterada"
-   sem precisar rodar `gpg` na mão.
-
-5. **Rate limiting e proteção anti-spam** no `/api/sign` (ex.: Flask-Limiter),
-   já que hoje qualquer request pode gerar uma assinatura.
-
-6. **Exportar o recibo em PDF** com o texto assinado + QR code apontando
-   para `/api/signatures/<id>`, para dar a sensação de "documento assinado"
-   que a pessoa pode guardar.
+Não afiliado à Riot Games. League of Legends é marca da Riot Games, Inc.
