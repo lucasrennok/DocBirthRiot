@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="robots" content="noindex" />
+		<title>Verificar recibo — Assinatura Digital</title>
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+	</head>
+	<body>
+		<div class="page">
+			{% include "_topbar.html" %}
+
+			<main class="layout">
+				{% if sig %}
+				<section class="receipt" aria-label="Resultado da verificação">
+					<div class="seal {% if not sig.verified %}seal-bad{% endif %}">
+						<span class="seal-ring"></span>
+						<span class="seal-code mono">{% if sig.verified %}№ {{ sig.fingerprint[-6:] }}{% else %}INVÁLIDO{% endif %}</span>
+					</div>
+					{% if sig.verified %}
+					<p class="receipt-heading">✅ Assinatura válida: os dados não foram alterados.</p>
+					{% else %}
+					<p class="receipt-heading">❌ A assinatura não confere com a chave deste servidor.</p>
+					{% endif %}
+
+					<dl class="ledger-rows mono">
+						<div><dt>Comprovante</dt><dd>{{ sig.id }}</dd></div>
+						<div><dt>Nome</dt><dd>{{ sig.name }}</dd></div>
+						<div><dt>Email</dt><dd>{{ sig.email_masked }}</dd></div>
+						<div><dt>Assinado em (UTC)</dt><dd class="js-date" data-iso="{{ sig.signed_at }}">{{ sig.signed_at }}</dd></div>
+						<div><dt>Documento</dt><dd>{% if sig.document_is_current %}versão atual{% else %}versão anterior do documento{% endif %}</dd></div>
+						<div><dt>Fingerprint</dt><dd class="fp js-fp">{{ sig.fingerprint }}</dd></div>
+					</dl>
+
+					<div class="actions">
+						<a class="btn-ghost" href="{{ url_for('api_download_signature', public_id=sig.id) }}" download>Baixar recibo (.asc)</a>
+						<a class="btn-ghost" href="{{ url_for('index') }}">Voltar ao documento</a>
+					</div>
+
+					<details class="reveal">
+						<summary>Ver bloco de assinatura PGP</summary>
+						<pre class="mono">{{ sig.signed_block }}</pre>
+					</details>
+				</section>
+				{% else %}
+				<section class="ledger" aria-label="Verificar recibo">
+					<p class="ledger-heading mono">Verificar recibo</p>
+					{% if not_found %}
+					<p class="error" role="alert">Recibo não encontrado. Confira o código.</p>
+					{% endif %}
+
+					<form class="verify-form" id="lookup-form" action="{{ url_for('verify_page') }}">
+						<div class="field">
+							<label for="code">Código do comprovante</label>
+							<input type="text" id="code" name="code" value="{{ query }}" placeholder="ex.: Xk3_9aQpL2Zt" autocomplete="off" spellcheck="false" />
+						</div>
+						<button type="submit" class="btn-primary">Buscar</button>
+					</form>
+
+					<div class="divider mono"><span>ou cole o bloco PGP</span></div>
+
+					<form id="block-form">
+						<div class="field">
+							<label for="block">Bloco PGP assinado</label>
+							<textarea id="block" rows="8" class="mono" placeholder="-----BEGIN PGP SIGNED MESSAGE-----"></textarea>
+						</div>
+						<button type="submit" class="btn-primary">Verificar bloco</button>
+						<p id="block-result" class="result mono" role="status"></p>
+					</form>
+				</section>
+				{% endif %}
+			</main>
+
+			{% include "_footer.html" %}
+		</div>
+		<script src="{{ url_for('static', filename='verificar.js') }}"></script>
+	</body>
+</html>

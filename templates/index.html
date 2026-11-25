@@ -3,108 +3,109 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="description" content="Termo de aceite (de brincadeira) para jogar League of Legends no aniversário." />
 		<title>Assinatura Digital — {{ document_title|title }}</title>
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖋️</text></svg>" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
 			href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
 			rel="stylesheet"
 		/>
-		<link rel="stylesheet" href="/static/style.css" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 	</head>
 	<body>
 		<div class="page">
-			<header class="topbar">
-				<div class="mark">
-					<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-						<path
-							d="M4 18.5 L15 7.5 L17 9.5 L6 20.5 L3.2 21 Z"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.3"
-							stroke-linejoin="round"
-						/>
-						<path
-							d="M14 8.5 L16 6.5 a1.6 1.6 0 0 1 2.3 0 l0.2 0.2 a1.6 1.6 0 0 1 0 2.3 L16.5 11"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.3"
-							stroke-linejoin="round"
-						/>
-					</svg>
-					<span>Assinatura Digital</span>
-				</div>
-				<div class="doc-status">
-					<!-- <span class="dot" aria-hidden="true"></span> -->
-					<!-- <span class="mono">sha256:{{ doc_hash_short }}…</span> -->
-					<!-- <span class="sep">·</span> -->
-					<!-- <span>Documento fixo</span> -->
-				</div>
-			</header>
+			{% include "_topbar.html" %}
+
+			{% if countdown is not none %}
+			<aside class="countdown mono" aria-live="polite">
+				{% if countdown == 0 %}
+				🎂 É hoje! Feliz aniversário — o Rift te espera.
+				{% elif countdown == 1 %}
+				⏳ Falta <strong>1 dia</strong> para {{ birthday }}. Já instalou o jogo?
+				{% else %}
+				⏳ Faltam <strong>{{ countdown }} dias</strong> para {{ birthday }}.
+				{% endif %}
+			</aside>
+			{% endif %}
 
 			<main class="layout">
 				<!-- ==================== O DOCUMENTO (papel) ==================== -->
 				<section class="paper" aria-label="Documento a ser assinado">
 					<div class="paper-inner">
 						<p class="paper-eyebrow">
-							Documento Riot Games <span class="sep">·</span> League of Legends
+							Documento oficial(mente não oficial) <span class="sep">·</span> League of Legends
 						</p>
 						<h1 class="paper-title">{{ document_title|title }}</h1>
+						{% if document_subtitle %}
+						<p class="paper-subtitle">{{ document_subtitle }}</p>
+						{% endif %}
 
-						{% for block in document_blocks %} {% if block.type == 'paragraph'
-						%}
-						<p class="paper-p">{{ block.text }}</p>
-						{% elif block.type == 'list' %}
-						<ol class="paper-list">
-							{% for item in block.entries %}
-							<li>{{ item }}</li>
-							{% endfor %}
-						</ol>
-						{% endif %} {% endfor %}
+						{% for block in document_blocks %}
+							{% if block.type == 'paragraph' %}
+							<p class="paper-p">{{ block.html }}</p>
+							{% elif block.type == 'h2' %}
+							<h2 class="paper-h2">{{ block.html }}</h2>
+							{% elif block.type == 'h3' %}
+							<h3 class="paper-h3">{{ block.html }}</h3>
+							{% elif block.type == 'hr' %}
+							<hr class="paper-hr" />
+							{% elif block.type == 'quote' %}
+							<blockquote class="paper-quote">{{ block.html }}</blockquote>
+							{% elif block.type == 'list' %}
+							{% set tag = 'ul' if block.style == 'bullet' else 'ol' %}
+							<{{ tag }} class="paper-list list-{{ block.style }}">
+								{% for item in block.entries %}
+								<li>
+									{{ item.html }}
+									{% if item.children %}
+									<ul class="paper-sublist">
+										{% for child in item.children %}<li>{{ child }}</li>{% endfor %}
+									</ul>
+									{% endif %}
+									{% if item.note %}<span class="paper-note">{{ item.note }}</span>{% endif %}
+								</li>
+								{% endfor %}
+							</{{ tag }}>
+							{% endif %}
+						{% endfor %}
 
 						<div class="paper-hash">
-							<!-- <span>Impressão digital deste documento (SHA-256)</span>
-							<code class="mono">{{ doc_hash }}</code> -->
+							<span>Impressão digital deste documento (SHA-256)</span>
+							<code class="mono">{{ doc_hash }}</code>
 						</div>
 					</div>
 				</section>
 
 				<!-- ==================== FORMULÁRIO DE ASSINATURA ==================== -->
 				<section class="ledger" id="form-panel" aria-label="Assinar documento">
-					<p class="ledger-heading mono">Cadastro de assinatura</p>
+					<p class="ledger-heading mono">
+						Cadastro de assinatura
+						<span class="counter" id="counter" data-total="{{ total_signatures }}">
+							{% if total_signatures == 0 %}ninguém assinou ainda{% elif total_signatures == 1 %}1 assinatura{% else %}{{ total_signatures }} assinaturas{% endif %}
+						</span>
+					</p>
 
 					<form id="sign-form" novalidate>
 						<div class="field">
 							<label for="name">Nome</label>
-							<input
-								type="text"
-								id="name"
-								name="name"
-								required
-								minlength="2"
-								autocomplete="name"
-								placeholder="Nome"
-							/>
+							<input type="text" id="name" name="name" required minlength="2" maxlength="100" autocomplete="name" placeholder="Seu nome (ou nick de invocador)" />
 						</div>
 
 						<div class="field">
 							<label for="email">Email</label>
-							<input
-								type="email"
-								id="email"
-								name="email"
-								required
-								autocomplete="email"
-								placeholder="voce@exemplo.com"
-							/>
+							<input type="email" id="email" name="email" required maxlength="254" autocomplete="email" placeholder="voce@exemplo.com" />
+							<small class="field-hint">Entra só no recibo assinado. A página pública mostra o email mascarado.</small>
 						</div>
 
 						<label class="agree">
 							<input type="checkbox" id="agree" required />
-							<span>Li e concordo com os termos do documento acima.</span>
+							<span>Li e concordo com os termos do documento acima, inclusive as cláusulas absurdas.</span>
 						</label>
 
-						<button type="submit" id="submit-btn">
+						<button type="submit" id="submit-btn" class="btn-primary">
 							<span class="btn-label">Assinar documento</span>
 						</button>
 						<p id="error-msg" class="error" role="alert"></p>
@@ -112,53 +113,46 @@
 				</section>
 
 				<!-- ==================== RECIBO / SELO ==================== -->
-				<section
-					class="receipt hidden"
-					id="receipt-section"
-					aria-label="Recibo de assinatura"
-				>
-					<!-- <div class="seal" id="seal">
+				<section class="receipt hidden" id="receipt-section" aria-label="Recibo de assinatura" tabindex="-1">
+					<div class="seal" id="seal">
 						<span class="seal-ring"></span>
 						<span class="seal-code mono" id="seal-code"></span>
-					</div> -->
+					</div>
 
-					<p class="receipt-heading">Documento assinado!</p>
+					<p class="receipt-heading">Documento assinado! Não tem mais volta. 🎮</p>
 
 					<dl class="ledger-rows mono">
-						<div>
-							<dt>Comprovante</dt>
-							<dd id="r-id"></dd>
-						</div>
-						<div>
-							<dt>Nome</dt>
-							<dd id="r-name"></dd>
-						</div>
-						<!-- <div>
-							<dt>Assinado em</dt>
-							<dd id="r-date"></dd>
-						</div>
-						<div>
-							<dt>Fingerprint</dt>
-							<dd id="r-fingerprint" class="fp"></dd>
-						</div> -->
+						<div><dt>Comprovante</dt><dd id="r-id"></dd></div>
+						<div><dt>Nome</dt><dd id="r-name"></dd></div>
+						<div><dt>Assinado em</dt><dd id="r-date"></dd></div>
+						<div><dt>Fingerprint</dt><dd id="r-fingerprint" class="fp"></dd></div>
 					</dl>
+
+					<div class="actions">
+						<a class="btn-ghost" id="r-verify" href="#">Página de verificação</a>
+						<button type="button" class="btn-ghost" id="copy-link">Copiar link</button>
+						<a class="btn-ghost" id="r-download" href="#" download>Baixar recibo (.asc)</a>
+					</div>
 
 					<details class="reveal">
 						<summary>Ver bloco de assinatura PGP</summary>
 						<pre class="mono" id="receipt-block"></pre>
+						<button type="button" class="btn-ghost small" id="copy-block">Copiar bloco</button>
 					</details>
 
-					<!-- <p class="hint">
-						Verifique esta assinatura offline, sem confiar em nada além da
-						matemática do PGP, com a
-						<a href="/api/public-key" target="_blank" rel="noopener"
-							>chave pública do servidor</a
-						>.
-					</p> -->
+					<p class="hint">
+						Verifique esta assinatura offline, sem confiar em nada além da matemática do PGP, com a
+						<a href="{{ url_for('api_public_key', format='asc') }}">chave pública do servidor</a>
+						(<code>gpg --import</code> e depois <code>gpg --verify recibo.asc</code>).
+					</p>
 				</section>
 			</main>
+
+			{% include "_footer.html" %}
 		</div>
 
-		<script src="/static/script.js"></script>
+		<div class="toast mono" id="toast" role="status" aria-live="polite"></div>
+		<canvas id="confetti" aria-hidden="true"></canvas>
+		<script src="{{ url_for('static', filename='script.js') }}"></script>
 	</body>
 </html>
