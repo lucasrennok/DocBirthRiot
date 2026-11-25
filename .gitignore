@@ -1,5 +1,17 @@
+# Segredos e dados locais
+.env
 server_key.asc
 signatures.db
+data/
+
+# Python
 __pycache__/
-venv/
 *.pyc
+venv/
+.venv/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
